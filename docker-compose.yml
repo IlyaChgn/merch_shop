@@ -1,0 +1,43 @@
+services:
+  avito-shop-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: avito-shop-service
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - internal
+
+  postgres:
+    image: postgres:13
+    restart: always
+    environment:
+      - POSTGRES_DB=${DATABASE_NAME}
+      - POSTGRES_USER=${POSTGRES_USERNAME}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+    ports:
+      - ${POSTGRES_PORT}:${POSTGRES_PORT}
+    command:
+      - "postgres"
+      - "-c"
+      - "port=${POSTGRES_PORT}"
+    volumes:
+      - ./migrations/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: [ "CMD-SHELL", "sh -c 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}'" ]
+      interval: 5s
+      timeout: 10s
+      retries: 5
+      start_period: 10s
+    networks:
+      - internal
+
+networks:
+  internal:
+
+volumes:
+  postgres:
